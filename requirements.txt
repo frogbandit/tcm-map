@@ -8,9 +8,5 @@ Twisted==12.2.0
 Werkzeug==0.9.4
 gunicorn==19.0.0
 simplejson==3.5.2
-<<<<<<< HEAD
 psycopg2==2.5.3
 requests==2.2.1
-=======
-psycopg2==2.5.3
->>>>>>> 464b7a38bbe19354749658629904712446153c0d
