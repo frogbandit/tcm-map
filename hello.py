@@ -57,7 +57,7 @@ def hello():
 
 	# rs = s.execute()
 	# rows = rs.fetchmany(5)
-	rows = cur.fetchmany(250000)
+	rows = cur.fetchmany(25000)
 	# return rows[0]
 	# return "lol"
 	
