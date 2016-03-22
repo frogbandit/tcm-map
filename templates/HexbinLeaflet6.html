@@ -1,0 +1,217 @@
+<html>
+  <head>
+
+    <script src="static/js/d3.min.js"></script>
+<!--     // <script src="http://d3js.org/d3.hexbin.v0.js"></script> -->
+    <script src="static/js/d3.hexbin.v0.min.js"></script>
+ <!--    // <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet-src.js"></script> -->
+
+
+<!-- Taken from OSMtrial3.html -->
+    <link type="text/css" rel="stylesheet" href="static/css/leaflet.css" />
+    <script src="static/js/leaflet.js"></script>
+
+<!-- Taken from mhkeller github -->
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+ 
+    <script type="text/javascript" src="static/js/colorbrewer.js"></script>
+    <script type="text/javascript" src="static/js/leaflet.hexbin-layerTCM3.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+ 
+    <style type="text/css">
+      html, body { margin: 0; padding: 0; height: 100%; }
+      #minedata { min-height: 100%; }
+      .hexagon { opacity: 0.7 }
+
+/*      path {
+        fill: #fc0;
+        fill-opacity: 1;
+        stroke: #fff;
+        stroke-width: 1.5px;
+      }
+ */
+      path:hover {
+        fill: #fc0;
+        fill-opacity: .7;
+        cursor:pointer;
+        cursor:hand;
+      }
+
+
+/*      .d3-tip {
+  max-height: 300;
+  overflow: auto;
+  line-height: 1;
+  font-weight: bold;
+  padding: 0px;
+  background: #0088cc;
+  color: #0088cc;
+  opacity: 0.90;
+  border-radius: 2px;
+}*/
+
+.d3-tip{
+  color: white;
+  font-size: 12px;
+  width: 300px;
+  padding: 5px 12px;
+  background-color: #0088cc;
+  opacity: 0.80;
+  overflow: auto;
+  max-height: 200;
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  border: 1px solid #eee;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+  text-align: left;
+  -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.flat-table {
+  color: white;
+  display: block;
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 115%;
+  overflow: auto;
+  width: auto;
+  opacity: 0.80;
+  text-align: left;
+}
+  
+  .flat-table th {
+/*    background-color: rgb(112, 196, 105);*/
+    color: white;
+    font-weight: bold;
+    padding: 2px 3px;
+    text-align: left;
+/*    border-bottom: 1px solid white;*/
+  }
+ .flat-table td {
+/*    background-color: rgb(238, 238, 238);*/
+    padding: 2px 3px;
+/*    border-bottom: 1px solid white;*/
+    line-height: 22px;
+  }
+
+/*td, th {
+    padding: 1px 4px;
+}
+*/
+    </style>
+  </head>
+  <body>
+    <div id='minedata' data-source="static/data/data.json"><svg></svg></div>
+    <div id="map"></div>
+    <script type="text/javascript">
+    var rawdata;
+    var container;
+    var hexmax;
+    var map;
+    var mapscale;
+    var oldzoom = 2;
+
+      (function () {
+          // var max, scale;
+          var classes = 9;
+          var scheme = colorbrewer["Blues"][classes];
+          container = L.DomUtil.get('minedata');
+          map = L.map(container).setView([51.505, -0.09], 2);
+
+          var svg = d3.select("#minedata").append("svg"),
+          g = svg.append("g");
+
+      var tip = d3.tip()
+      .attr('class', 'd3-tip')
+      .offset([-10, 0])
+      .html(function(d) {
+        //alert(d)
+        var names = [];
+        var commodities = [];
+        var countries = [];
+
+        for (i = 0; i < d.length; i++)
+              names += (d[i][2] + "<br />");
+
+        for (i = 0; i < d.length; i++)
+              commodities += (d[i][3] + "<br />");
+
+        for (i = 0; i < d.length; i++)
+              countries += (d[i][4] + "<br />");
+
+          return "<table class=\"flat-table\"><tr><th>Projects:</th><td>"+d.length+"</td></tr><tr><th>Name(s):</th><th>Commodity:</th><th>Country:</th></tr><tr><td>"+names+"</td><td>"+commodities+"</td><td>"+countries+"</td></tr></table>";
+       
+
+      });
+          svg.call(tip);
+          // svg.call(clicktip);
+
+          var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+          var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a>';
+          L.tileLayer(osmUrl, {
+              attribution: osmAttrib,
+              maxZoom: 12,
+              noWrap: true
+  }).addTo(map);
+
+ 
+          // Async call for data. Source URL is loaded from container element's
+          // 'data-source' attribute.
+          d3.json("static/data.json", function(collection) {
+              // When data arrives, create leaflet layer with custom style callback.
+              rawdata = collection;
+              L.hexLayer(collection, {
+                  applyStyle: hex_style
+              }).addTo(map);
+          });
+           /**
+           * Hexbin style callback.
+           *
+           * Determines a quantize mapscale (http://bl.ocks.org/4060606) based on the
+           * map's initial data density (which is based on the initial zoom level)
+           * and applies a colorbrewer (http://colorbrewer2.org/) colour scheme
+           * accordingly.
+           */
+          function hex_style(hexagons) {
+            console.log(map.getZoom());
+              // Maintain a density scale relative to initial zoom level.
+              if (!(hexmax && mapscale)) {
+                  hexmax = d3.max(hexagons.data(), function (d) { return d.length; });
+                  mapscale = d3.scale.quantize()
+                          .domain([0, hexmax])
+                          .range(d3.range(classes));
+              }
+
+              if (map.getZoom() != oldzoom) {
+                  hexmax = d3.max(hexagons.data(), function (d) { return d.length; });
+                  mapscale = d3.scale.quantize()
+                          .domain([0, hexmax])
+                          .range(d3.range(classes));
+                  oldzoom = map.getZoom();
+              }
+ 
+              hexagons
+                  .attr("stroke", scheme[classes - 1])
+                  .attr("fill", function (d) {
+                      return scheme[mapscale(d.length)];
+                  })
+    //               .on("mouseover", function (d){
+    //               console.log("Hi! "+ d.length);
+    // })
+                  .on("mouseover", tip.show)
+                  .on("mouseout", tip.hide)
+          }
+
+
+      }());
+
+
+    </script>
+  </body>
+</html>

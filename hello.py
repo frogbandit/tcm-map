@@ -126,8 +126,8 @@ def hello():
 
 
 
-	return render_template("earthquake.html")
+	return render_template("HexbinLeaflet6.html")
 
 
-# if __name__ == "__main__":
-#     app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
